@@ -71,6 +71,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.vividsolutions.jts.geom.Geometry;
 
 /**
@@ -767,7 +768,6 @@ public class ResponseWriter {
                 for (Object attribute : attributes) {
                     if (attribute instanceof Geometry) {
                         writeElement("geometry", ((Geometry) attribute).toText());
-                        break;
                     }
                 }
                 if (next.getCRS() != null) {
@@ -873,12 +873,11 @@ public class ResponseWriter {
                             FeatureBuilder builder = new FeatureBuilder(type);
                             GeogitSimpleFeature simpleFeature = (GeogitSimpleFeature) builder
                                     .build(feature.getId().toString(), feature);
-                            Geometry geom = null;
+                            List<Geometry> geom = Lists.newArrayList();
                             List<Object> attributes = simpleFeature.getAttributes();
                             for (Object attribute : attributes) {
                                 if (attribute instanceof Geometry) {
-                                    geom = (Geometry) attribute;
-                                    break;
+                                    geom.add((Geometry) attribute);
                                 }
                             }
                             conflict = new GeometryConflict(input, geom, crsCode);
@@ -895,7 +894,10 @@ public class ResponseWriter {
                 writeElement("id", next.getConflict().getPath());
                 writeElement("ourvalue", next.getConflict().getOurs().toString());
                 writeElement("theirvalue", next.getConflict().getTheirs().toString());
-                writeElement("geometry", next.getGeometry().toText());
+                Iterator<Geometry> geomIter = next.getGeometry().iterator();
+                while (geomIter.hasNext()) {
+                    writeElement("geometry", geomIter.next().toText());
+                }
                 if (next.getCRS() != null) {
                     writeElement("crs", next.getCRS());
                 }
@@ -963,7 +965,6 @@ public class ResponseWriter {
                 for (Object attribute : attributes) {
                     if (attribute instanceof Geometry) {
                         writeElement("geometry", ((Geometry) attribute).toText());
-                        break;
                     }
                 }
                 if (next.getCRS() != null) {
@@ -1078,11 +1079,11 @@ public class ResponseWriter {
     private class GeometryConflict {
         private Conflict conflict;
 
-        private Geometry geom;
+        private List<Geometry> geom;
 
         private String crs;
 
-        public GeometryConflict(Conflict conflict, Geometry geom, String crs) {
+        public GeometryConflict(Conflict conflict, List<Geometry> geom, String crs) {
             this.conflict = conflict;
             this.geom = geom;
             this.crs = crs;
@@ -1092,7 +1093,7 @@ public class ResponseWriter {
             return conflict;
         }
 
-        public Geometry getGeometry() {
+        public List<Geometry> getGeometry() {
             return geom;
         }
 
